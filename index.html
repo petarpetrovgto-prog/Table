@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Range Trainer vT8 — Table Mode</title>
+<style>
+  :root{
+    /* основни */
+    --bg:#0b0f14; --panel:#0f1520; --panel2:#101827; --border:#223047; --text:#e7ecf3;
+    /* действия */
+    --FOLD:#f4f6fa; --L-F-F:#a7e8a7; --L-C-F:#155d15; --L-C-AI:#bcdcf3; --L-R-AI:#0b3a94;
+    --MR-F-F:#ffe27a; --MR-C-AI:#7b4a2a; --MR-4B-AI:#e44747; --SHOVE:#6d4b8e;
+    /* feedback */
+    --ok:#1f9d55; --err:#d64545;
+    /* маса */
+    --felt:#1d5a3a; --felt-dark:#14422b; --rail:#2a2f3c; --glow:#3ecf8e;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.35 -apple-system,system-ui,Segoe UI,Roboto,Arial}
+
+  .top{position:sticky;top:0;z-index:30;display:flex;justify-content:space-between;align-items:center;
+       padding:6px 8px;background:var(--panel2);border-bottom:1px solid var(--border)}
+  .chip{padding:3px 8px;border:1px solid var(--border);border-radius:999px;background:#0f1624;font-size:12px;display:inline-flex;gap:6px;align-items:center}
+  .chip b{display:inline-block;min-width:2.2ch;text-align:center;font-variant-numeric:tabular-nums}
+  .btn{border:1px solid var(--border);background:#0f1624;color:var(--text);border-radius:12px;
+       padding:10px 14px;font-weight:800;cursor:pointer}
+
+  .wrap{max-width:1200px;margin:0 auto;padding:10px}
+  .grid{display:grid;gap:10px}
+  @media(min-width:1080px){.grid{grid-template-columns:1.2fr 0.8fr}}
+
+  .card{border:1px solid var(--border);background:#0f1624;border-radius:14px;padding:12px}
+  .card h3{margin:0 0 8px;font-size:16px;display:flex;align-items:center;justify-content:space-between}
+  .toggle{font-size:12px;opacity:.9}
+  .hidden{display:none}
+
+  /* ======== МАСА ======== */
+  .tableCard{padding:0;overflow:hidden}
+  .tableTopBar{
+    display:flex;justify-content:space-between;align-items:center;
+    gap:8px;padding:10px;border-bottom:1px solid var(--border);background:var(--panel2)
+  }
+  .modeBadge{display:flex;gap:6px;align-items:center}
+  .modeBtn{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#0f1624;font-weight:800;cursor:pointer}
+  .modeBtn.active{outline:3px solid rgba(77,163,255,.4)}
+
+  .tableArea{
+    position:relative;aspect-ratio:16/9;min-height:420px;background:linear-gradient(180deg,#0b0f14,#0d121a);
+  }
+  .oval{
+    position:absolute;inset:8% 10%;
+    border-radius:180px;
+    background:
+      radial-gradient(ellipse at center, rgba(62,207,142,.25), transparent 55%),
+      linear-gradient(180deg,var(--felt) 0%, var(--felt-dark) 100%);
+    border:10px solid var(--rail);
+    box-shadow:
+      inset 0 0 80px rgba(0,0,0,.35),
+      0 0 0 2px rgba(0,0,0,.25),
+      0 18px 60px rgba(0,0,0,.55);
+  }
+
+  .pot{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:120px;height:120px;border-radius:50%;
+    outline:2px dashed rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;
+    font-weight:900;font-size:14px;color:#a7ffcf;opacity:.9;pointer-events:none;
+  }
+
+  /* седалки */
+  .seat{
+    position:absolute;width:180px;max-width:26%;text-align:center;transform:translate(-50%,-50%);
+    display:flex;flex-direction:column;align-items:center;gap:8px
+  }
+  .avatar{width:60px;height:60px;border-radius:50%;background:linear-gradient(180deg,#cfd8e3,#94a3b8);
+    box-shadow:0 8px 16px rgba(0,0,0,.35);border:3px solid #0b0f14}
+  .me .avatar{background:linear-gradient(180deg,#ffe08a,#ffaf40)}
+  .posTag{font-size:12px;font-weight:900;padding:4px 8px;border-radius:10px;background:#0b1626;border:1px solid var(--border)}
+  .name{font-weight:900;opacity:.95}
+  .stack{font-size:12px;opacity:.85}
+
+  /* карти */
+  .cards{display:flex;gap:8px}
+  .cardX{
+    width:52px;height:72px;border-radius:8px;background:linear-gradient(180deg,#fff,#eaeef6);
+    box-shadow:0 6px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;position:relative;
+    font-weight:900;font-size:20px;color:#111;
+  }
+  .cardX.red{color:#c53030}
+  .cardX .suit{position:absolute;right:6px;bottom:4px;font-size:14px;opacity:.9}
+  .cardBack{background:repeating-linear-gradient(45deg,#1b2a44 0 6px,#152235 6px 12px);color:transparent}
+
+  /* действия панел */
+  .actionsPanel{
+    position:absolute;left:0;right:0;bottom:0;
+    background:linear-gradient(180deg, rgba(15,22,36,.0), rgba(15,22,36,.65) 35%, rgba(15,22,36,.95));
+    padding:14px 12px;border-top:1px solid rgba(34,48,71,.5)
+  }
+  .actionsGrid{
+    display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:10px
+  }
+  .actBtn{
+    position:relative;border:2px solid rgba(0,0,0,.18);border-radius:13px;
+    padding:14px 10px;font-size:16px;font-weight:1000;letter-spacing:.3px;
+    color:#000; box-shadow:0 4px 14px rgba(0,0,0,.25);
+    transform:translateY(0); transition:transform .06s ease, filter .06s ease, box-shadow .06s ease;
+    background:#bbb;
+  }
+  .actBtn:active{transform:translateY(1px); filter:brightness(.96)}
+  .actBtn.ok{box-shadow:0 0 0 3px rgba(31,157,85,.55)}
+  .actBtn.err{box-shadow:0 0 0 3px rgba(214,69,69,.55)}
+  .actBtn .lbl{display:block;white-space:normal;overflow-wrap:anywhere;line-height:1.05}
+  .tag{position:absolute;right:8px;top:6px;font-size:11px;opacity:.7;color:#000}
+
+  .disp{margin:4px 0 8px;border:2px solid var(--border);background:#0b1220;border-radius:10px;padding:10px;
+        font-weight:900;text-align:center}
+  .disp.ok{border-color:var(--ok); box-shadow:0 0 0 3px rgba(31,157,85,.45)}
+  .disp.err{border-color:var(--err); box-shadow:0 0 0 3px rgba(214,69,69,.45)}
+  .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .key{border:1px solid var(--border);background:#111a2b;border-radius:12px;padding:16px 0;font-weight:900;font-size:20px}
+
+  .feedback{margin-top:8px;font-weight:900}
+  .ok{color:var(--ok)} .err{color:var(--err)}
+  .resRow{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:8px 10px;
+          border:1px dashed #2a3b58;border-radius:10px;margin-top:8px}
+  .val{font-weight:900;padding:6px 8px;border-radius:8px;min-width:96px;text-align:center}
+
+  /* контроли под масата */
+  .underbar{display:flex;gap:8px;flex-wrap:wrap;padding:10px;border-top:1px solid var(--border);background:#0f1520}
+
+  /* настройки */
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:#0f1624;
+         border-radius:999px;padding:6px 10px;font-weight:800;cursor:pointer}
+  .badge input{accent-color:#4da3ff}
+  .mini{font-size:12px;opacity:.8}
+  .sep{height:1px;background:#223047;margin:10px 0}
+
+  /* модали */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:60;align-items:center;justify-content:center;padding:16px}
+  .overlay.show{display:flex}
+  .box{width:100%;max-width:720px;background:#0f1520;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .boxHead{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#101827;border-bottom:1px solid var(--border)}
+  .boxBody{padding:10px 12px}
+  .boxFoot{display:flex;gap:8px;justify-content:space-between;padding:10px 12px;border-top:1px solid var(--border);background:#0f1520}
+  textarea{width:100%;min-height:260px;background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px;font:14px/1.35 ui-monospace}
+
+  /* Жокер */
+  #jokerPanel{display:none;margin-top:12px;border:1px dashed var(--border);border-radius:10px;padding:10px;background:#0f1624}
+  #jokerHead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+  #jokerModeName{font-size:12px;opacity:.85}
+  .jokerGrid{display:grid;grid-template-columns:repeat(13,1fr);gap:1px}
+  .jk{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-weight:800;border:1px solid #222;
+      font-size:11px;line-height:1;text-align:center;padding:0 2px}
+  .jk.cur{outline:3px solid #4da3ff}
+  @media(max-width:480px){ .jk{font-size:9px} }
+  @media(max-width:380px){ .jk{font-size:8px} }
+
+  .flashWrap{display:flex;flex-wrap:wrap;gap:6px}
+  .flashChip{border:1px solid rgba(0,0,0,.2);border-radius:10px;padding:6px 8px;font-weight:800}
+  .flashTitle{font-size:12px;opacity:.85;margin-bottom:6px}
+
+  /* анимации */
+  @keyframes shake {
+    0%{transform:translateX(0)}
+    20%{transform:translateX(-6px)}
+    40%{transform:translateX(6px)}
+    60%{transform:translateX(-4px)}
+    80%{transform:translateX(4px)}
+    100%{transform:translateX(0)}
+  }
+  .shaking .oval{animation:shake .32s ease}
+  .flyingChip{
+    position:fixed;width:18px;height:18px;border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, #fff, #ffe27a 45%, #e0a100 70%, #9a6a00 100%);
+    box-shadow:0 8px 14px rgba(0,0,0,.5);z-index:50;pointer-events:none
+  }
+
+  /* помощни */
+  .srOnly{position:absolute !important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="top">
+  <div style="display:flex;gap:6px;align-items:center">
+    <span class="chip">Q: <b id="qCount">0</b></span>
+    <span class="chip">✔: <b id="qRight">0</b></span>
+    <span class="chip">🔥: <b id="streak">0</b></span>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="btn" id="btnEdit">Редактор</button>
+  </div>
+</div>
+
+<div class="wrap grid">
+  <!-- ====== TABLE / GAME ====== -->
+  <div class="card tableCard">
+    <div class="tableTopBar">
+      <div class="modeBadge">
+        <span class="mini">Режим маса:</span>
+        <button class="modeBtn active" id="autoMode">Auto (по позиция)</button>
+        <button class="modeBtn" id="forceHU">HU</button>
+        <button class="modeBtn" id="force3">3-max</button>
+      </div>
+      <div class="mini" id="qMeta">Ръка: — · Стак: — · Позиция: —</div>
+    </div>
+
+    <div class="tableArea" id="tableArea">
+      <div class="oval"></div>
+      <div class="pot" id="pot">POT</div>
+
+      <!-- seats -->
+      <div class="seat me" id="seatMe">
+        <div class="avatar"></div>
+        <div class="name">Ти</div>
+        <div class="posTag" id="mePos">—</div>
+        <div class="stack" id="meStack">Стак: —</div>
+        <div class="cards" id="meCards"></div>
+      </div>
+
+      <div class="seat" id="seatOpp1">
+        <div class="avatar"></div>
+        <div class="name" id="opp1Name">Оп 1</div>
+        <div class="posTag" id="opp1Pos">—</div>
+        <div class="stack mini" id="opp1Stack">—</div>
+        <div class="cards" id="opp1Cards">
+          <div class="cardX cardBack"></div>
+          <div class="cardX cardBack"></div>
+        </div>
+      </div>
+
+      <div class="seat" id="seatOpp2">
+        <div class="avatar"></div>
+        <div class="name" id="opp2Name">Оп 2</div>
+        <div class="posTag" id="opp2Pos">—</div>
+        <div class="stack mini" id="opp2Stack">—</div>
+        <div class="cards" id="opp2Cards">
+          <div class="cardX cardBack"></div>
+          <div class="cardX cardBack"></div>
+        </div>
+      </div>
+
+      <!-- действия -->
+      <div class="actionsPanel">
+        <div id="ansArea"></div>
+        <div id="feedback" class="feedback"></div>
+        <div id="correctRow" class="resRow" style="display:none">
+          <div>Правилен:</div>
+          <div id="correctVal" class="val">—</div>
+        </div>
+
+        <!-- ЖОКЕР панел -->
+        <div id="jokerPanel">
+          <div id="jokerHead">
+            <button id="btnJokerMode" class="btn">Смени жокер</button>
+            <span id="jokerModeName" class="mini"></span>
+          </div>
+          <div id="jokerContent"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="underbar">
+      <button id="btnStart" class="btn" style="flex:1;font-weight:900">Старт / Рестарт</button>
+      <button id="btnCheck" class="btn" style="flex:1;font-weight:900">Провери</button>
+      <button id="btnNext" class="btn" style="flex:1;font-weight:900">Следващ</button>
+      <button id="btnResetScore" class="btn" style="flex:1;font-weight:900">Нулирай резултат</button>
+    </div>
+  </div>
+
+  <!-- ====== SETTINGS ====== -->
+  <div class="card" id="settingsCard">
+    <h3>
+      Настройки
+      <button id="toggleSettings" class="btn toggle">Скрий</button>
+    </h3>
+
+    <div class="mini">Позиции за тренировка (маркирай конкретни):</div>
+    <div id="posFilters" class="row"></div>
+
+    <div class="sep"></div>
+
+    <div class="mini">Стак диапазони (маркирай конкретни):</div>
+    <div id="stkFilters" class="row"></div>
+
+    <div class="sep"></div>
+
+    <div class="mini">Съвет: ако искаш само HU, маркирай само позиции, започващи с “HU…”. За 3-max – останалите.</div>
+  </div>
+</div>
+
+<!-- ====== EDITOR ====== -->
+<div id="editModal" class="overlay">
+  <div class="box">
+    <div class="boxHead">
+      <div><b>Редактор</b> <span id="editMeta" class="mini"></span></div>
+      <button id="editClose" class="btn">X</button>
+    </div>
+    <div class="boxBody">
+      <div class="row">
+        <select id="editPos" class="btn" style="flex:1"></select>
+        <select id="editStk" class="btn" style="flex:1"></select>
+      </div>
+      <div class="row mini">Формат: <code>HAND = ACTION</code> / <code>default = ACTION</code>; за PUSH — число.</div>
+      <textarea id="editArea" placeholder="AJo = L-C-AI&#10;default = Fold"></textarea>
+    </div>
+    <div class="boxFoot">
+      <button id="editClear" class="btn">Изчисти тази клетка</button>
+      <div><button id="editSave" class="btn">Запази</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== SR labels for a11y / debug ====== -->
+<div class="srOnly">
+  <div id="qHand">—</div>
+  <div id="qStack">Стак: —</div>
+  <div id="qPos">Позиция: —</div>
+</div>
+
+<script>
+(function(){
+  /* ========= Цветове / действия ========= */
+  const COLORS={"FOLD":"#f4f6fa","L-F-F":"#a7e8a7","L-C-F":"#155d15","L-C-AI":"#bcdcf3","L-R-AI":"#0b3a94","MR-F-F":"#ffe27a","MR-C-AI":"#7b4a2a","MR-4B-AI":"#e44747","SHOVE":"#6d4b8e"};
+  const norm=s=>(s||"").toUpperCase().replace(/\s+/g,"");
+  const isPushPos=p=>/PUSH/i.test(p);
+
+  /* Алиаси за BB срещу SB/BU в постфлоп/префлоп режими */
+  const alias=(key,act)=>{
+    const up=(act||"").toUpperCase();
+    if(!(key==="BBvsSB_L"||key==="HUBB_L"||key==="HUBB_MR"||key==="BBvsBU_MR"||key==="SBvsBU_MR"||key==="BBvsSB_MR"))
+      return{d:act,c:null};
+    if(up==="MR-F-F")return{d:"Check/Call",c:COLORS["MR-F-F"]};
+    if(up==="L-C-AI")return{d:"ISO/3bet",c:COLORS["L-C-AI"]};
+    if(up==="SHOVE")return{d:"ISO/3bet AI",c:COLORS["SHOVE"]};
+    if(up==="MR-4B-AI")return{d:"ISO/3bet/Fold",c:COLORS["MR-4B-AI"]};
+    return{d:act,c:null};
+  };
+  function resolveDisplay(key, act){
+    const ali = alias(key, act);
+    return { text: ali.d, color: ali.c || COLORS[norm(act)] || "" };
+  }
+
+  /* ========= Позиции / стакове ========= */
+  const POS_LIST=["HUSB","BU","HUBB_L","HUBB_MR","HUBBv_PUSH","SBvsBU","SBvsBU_PUSH","SBvsBB","BBvsBU_MR","BBvsBU_PUSH","BBvsSB_L","BBvsSB_MR","BBvsSB_PUSH"];
+  const STKS=["0–4","4–7","7–10","10–13","13+"];
+
+  /* ========= Ръце ========= */
+  const HANDS=`AA KK QQ JJ TT 99 88 77 66 55 44 33 22
+AKs AKo AQs AQo AJs AJo ATs ATo A9s A9o A8s A8o A7s A7o A6s A6o A5s A5o A4s A4o A3s A3o A2s A2o
+KQs KQo KJs KJo KTs KTo K9s K9o K8s K8o K7s K7o K6s K6o K5s K5o K4s K4o K3s K3o K2s K2o
+QJs QJo QTs QTo Q9s Q9o Q8s Q8o Q7s Q7o Q6s Q6o Q5s Q5o Q4s Q4o Q3s Q3o Q2s Q2o
+JTs JTo J9s J9o J8s J8o J7s J7o J6s J6o J5s J5o J4s J4o J3s J3o J2s J2o
+T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
+98s 98o 97s 97o 96s 96o 95s 95o 94s 94o 93s 93o 92s 92o
+87s 87o 86s 86o 85s 85o 84s 84o 83s 83o 82s 82o
+76s 76o 75s 75o 74s 74o 73s 73o 72s 72o
+65s 65o 64s 64o 63s 63o 62s 62o
+54s 54o 53s 53o 52s 52o
+43s 43o 42s 42o 32s 32o`.trim().split(/\s+/);
+
+  /* ========= DB ========= */
+  let DB=JSON.parse(localStorage.getItem("qt_trainer_v7")||"{}");
+  const save=()=>localStorage.setItem("qt_trainer_v7",JSON.stringify(DB));
+  const k=(p,r)=>p+"||"+r, get=(p,r)=>DB[k(p,r)]?.raw||"", set=(p,r,raw)=>{DB[k(p,r)]={raw};save();};
+
+  /* ========= Състояние ========= */
+  let curQ=null, count=0, right=0, streak=0;
+  let numBuf=""; let lastPressedBtn=null;
+  let viewMode="auto"; // auto | hu | 3
+
+  /* ========= Филтри ========= */
+  function buildFilters(){
+    const posC=document.getElementById("posFilters"); posC.innerHTML="";
+    POS_LIST.forEach(p=>{
+      const lab=document.createElement("label"); lab.className="badge";
+      const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=true; cb.dataset.pos=p;
+      lab.appendChild(cb); lab.append(" "+p); posC.appendChild(lab);
+    });
+    const stkC=document.getElementById("stkFilters"); stkC.innerHTML="";
+    STKS.forEach(s=>{
+      const lab=document.createElement("label"); lab.className="badge";
+      const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=true; cb.dataset.stk=s;
+      lab.appendChild(cb); lab.append(" "+s); stkC.appendChild(lab);
+    });
+  }
+  buildFilters();
+  function getFilters(){
+    const posSel = Array.from(document.querySelectorAll('#posFilters input:checked')).map(x=>x.dataset.pos);
+    const stkSel = Array.from(document.querySelectorAll('#stkFilters input:checked')).map(x=>x.dataset.stk);
+    return { pos: posSel.length? posSel : POS_LIST.slice(), stk: stkSel.length? stkSel : STKS.slice() };
+  }
+
+  /* ========= RNG ========= */
+  const rand=arr=>arr[Math.floor(Math.random()*arr.length)];
+
+  /* ========= Ръка -> карти ========= */
+  const SUITS = ["♥","♦","♣","♠"];
+  function parseHand(h){
+    const m = /^([AKQJT98765432])([AKQJT98765432])([so])?$/i.exec(h);
+    if(!m) return null;
+    const r1=m[1].toUpperCase(), r2=m[2].toUpperCase(), so=(m[3]||"").toLowerCase();
+    return {r1,r2, pair:r1===r2, suited:so==="s", off:so==="o"};
+  }
+  function cardEl(rank, suit){
+    const d=document.createElement("div");
+    d.className="cardX"+(/^[♥♦]$/.test(suit)?" red":"");
+    d.textContent=rank;
+    const s=document.createElement("div"); s.className="suit"; s.textContent=suit;
+    d.appendChild(s);
+    return d;
+  }
+  function renderHeroCards(hand){
+    const box=document.getElementById("meCards"); box.innerHTML="";
+    const p=parseHand(hand);
+    if(!p){ box.innerHTML='<div class="cardX">?</div><div class="cardX">?</div>'; return; }
+    if(p.pair){
+      box.appendChild(cardEl(p.r1,"♥"));
+      box.appendChild(cardEl(p.r2,"♠"));
+    }else if(p.suited){
+      box.appendChild(cardEl(p.r1,"♥"));
+      box.appendChild(cardEl(p.r2,"♥"));
+    }else{
+      box.appendChild(cardEl(p.r1,"♥"));
+      box.appendChild(cardEl(p.r2,"♣"));
+    }
+  }
+
+  /* ========= Масата / седалки ========= */
+  const seatMe = document.getElementById("seatMe");
+  const seatOpp1 = document.getElementById("seatOpp1");
+  const seatOpp2 = document.getElementById("seatOpp2");
+  const mePosTag = document.getElementById("mePos");
+  const meStack = document.getElementById("meStack");
+  const opp1Pos = document.getElementById("opp1Pos");
+  const opp2Pos = document.getElementById("opp2Pos");
+
+  function heroLabelForPos(pos){
+    if(pos==="HUSB") return "SB/BTN";
+    if(/^HUBB/.test(pos)) return "BB";
+    if(pos==="BU") return "BTN";
+    if(/^SB/.test(pos)) return "SB";
+    if(/^BB/.test(pos)) return "BB";
+    return "BTN";
+  }
+  function layoutForPos(pos){
+    const isHU = /^HU/.test(pos) || pos==="HUSB";
+    if(viewMode==="hu") return "HU";
+    if(viewMode==="3") return "3";
+    return isHU ? "HU" : "3";
+  }
+  function otherPositions(hero){
+    const all=["BTN","SB","BB"];
+    // treat SB/BTN as SB for 3-max set purposes
+    const heroNorm = (hero==="SB/BTN")?"SB":hero;
+    return all.filter(x=>x!==heroNorm);
+  }
+  function placeSeats(mode){
+    // positions on screen
+    const area = document.getElementById("tableArea").getBoundingClientRect();
+    // relative positions inside tableArea
+    function setSeat(el, xPct, yPct){
+      el.style.left = xPct + "%";
+      el.style.top  = yPct + "%";
+      el.style.display = "flex";
+    }
+    if(mode==="HU"){
+      setSeat(seatMe, 50, 84);
+      setSeat(seatOpp1, 50, 16);
+      seatOpp2.style.display="none";
+    }else{
+      setSeat(seatMe, 50, 86);
+      setSeat(seatOpp1, 20, 18);
+      setSeat(seatOpp2, 80, 18);
+    }
+  }
+  function updateTable(){
+    if(!curQ) return;
+    const mode = layoutForPos(curQ.pos);
+    placeSeats(mode);
+
+    const hero = heroLabelForPos(curQ.pos);
+    mePosTag.textContent = hero;
+    meStack.textContent  = "Стак: "+curQ.stk;
+    renderHeroCards(curQ.hand);
+
+    if(mode==="HU"){
+      const opp = (hero==="SB/BTN")?"BB":"SB/BTN";
+      opp1Pos.textContent = opp;
+      // facedown already in DOM
+    }else{
+      const others=otherPositions(hero);
+      opp1Pos.textContent = others[0];
+      opp2Pos.textContent = others[1];
+    }
+
+    // мета (горе вдясно)
+    document.getElementById("qMeta").textContent = `Ръка: ${curQ.hand} · Стак: ${curQ.stk} · Позиция: ${curQ.pos}`;
+    // скрити (за достъпност/съвместимост)
+    document.getElementById("qHand").textContent=curQ.hand;
+    document.getElementById("qStack").textContent="Стак: "+curQ.stk;
+    document.getElementById("qPos").textContent="Позиция: "+curQ.pos;
+  }
+
+  /* ========= Генерация ========= */
+  function askNew(){
+    const sel=getFilters();
+    const pos=rand(sel.pos);
+    const stk=rand(sel.stk);
+    const hand=rand(HANDS);
+    curQ={pos,stk,hand};
+    numBuf=""; lastPressedBtn=null;
+    document.getElementById("feedback").textContent="";
+    document.getElementById("correctRow").style.display="none";
+    document.getElementById("jokerPanel").style.display="none"; // скрий жокера при нов въпрос
+    renderAnswerUI();
+    updateTable();
+  }
+
+  /* ========= Изобразяване на отговорите ========= */
+  function renderAnswerUI(){
+    const a=document.getElementById("ansArea"); a.innerHTML="";
+    if(isPushPos(curQ.pos)){
+      const disp=document.createElement("div"); disp.className="disp"; disp.id="numDisp"; disp.textContent="Въведи число";
+      const grid=document.createElement("div"); grid.className="keypad";
+      const keys=["7","8","9","4","5","6","1","2","3",".","0","←"];
+      keys.forEach(k=>{
+        const b=document.createElement("button"); b.className="key"; b.textContent=k;
+        b.onclick=()=>keyPress(k);
+        grid.appendChild(b);
+      });
+      a.appendChild(disp); a.appendChild(grid);
+    }else{
+      const g=document.createElement("div"); g.className="actionsGrid";
+      Object.keys(COLORS).forEach(act=>{
+        const b=document.createElement("button");
+        b.className="actBtn";
+        const disp = resolveDisplay(curQ.pos, act);
+        const bg = disp.color || "#cccccc";
+        b.style.background = `linear-gradient(180deg, ${bg} 0%, ${bg} 72%, rgba(0,0,0,.06) 100%)`;
+        const lbl=document.createElement("span");
+        lbl.className="lbl";
+        lbl.innerHTML = disp.text.replace(/\//g,'/<br>');
+        b.appendChild(lbl);
+        const t=document.createElement("span"); t.className="tag"; t.textContent = (disp.text.includes("AI") || act.includes("AI")) ? "AI" : "";
+        b.appendChild(t);
+        b.onclick=()=>{ lastPressedBtn=b; checkAnswer(false, act); };
+        g.appendChild(b);
+      });
+      a.appendChild(g);
+    }
+  }
+  function updateDisp(){ const d=document.getElementById("numDisp"); if(d) d.textContent = numBuf.length? numBuf : "Въведи число"; }
+  function keyPress(k){
+    if(k==="←"){ numBuf=numBuf.slice(0,-1); updateDisp(); return; }
+    if(k==="." && numBuf.includes(".")) return;
+    if(numBuf.length>=6) return;
+    numBuf += k; updateDisp();
+  }
+
+  /* ========= Изчисление ========= */
+  function compute(pos,hand,stk){
+    const raw=get(pos,stk); if(!raw) return {disp:"—", isNum:isPushPos(pos)};
+    const lines=raw.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    let map={},def=null;
+    lines.forEach(l=>{
+      const [h,v]=l.split("=").map(x=>x.trim());
+      if(v==null){def=h;} else if(/^default$/i.test(h)) def=v; else map[h.toUpperCase()]=v;
+    });
+    const disp = map[hand.toUpperCase()] || def || "—";
+    return {disp, isNum:isPushPos(pos)};
+  }
+
+  /* ========= Жокер ========= */
+  const JOKER_MODES = ["table","flash"];
+  let jokerMode = localStorage.getItem("jokerMode") || "table";
+  const btnJokerMode = document.getElementById("btnJokerMode");
+  const jokerModeName = document.getElementById("jokerModeName");
+  const jokerContent  = document.getElementById("jokerContent");
+  btnJokerMode.onclick = ()=>{ cycleJokerMode(); };
+
+  function cycleJokerMode(){
+    const idx = (JOKER_MODES.indexOf(jokerMode)+1)%JOKER_MODES.length;
+    jokerMode = JOKER_MODES[idx];
+    localStorage.setItem("jokerMode", jokerMode);
+    jokerModeName.textContent = labelForMode(jokerMode);
+    renderJoker();
+  }
+  function labelForMode(m){ return m==="table" ? "Жокер: Таблица 13×13" : "Жокер: Flash Cards"; }
+
+  function renderJoker(){
+    const panel=document.getElementById("jokerPanel");
+    if(!curQ){ panel.style.display="none"; return; }
+    panel.style.display="block";
+    jokerModeName.textContent = labelForMode(jokerMode);
+    jokerContent.innerHTML="";
+
+    if(jokerMode==="table"){
+      const grid=document.createElement("div");
+      grid.className="jokerGrid";
+      const ranks=["A","K","Q","J","T","9","8","7","6","5","4","3","2"];
+      for(let i=0;i<13;i++){
+        for(let j=0;j<13;j++){
+          const cell=document.createElement("div");
+          cell.className="jk";
+          let h;
+          if(i===j) h=ranks[i]+ranks[j];
+          else if(i<j) h=ranks[i]+ranks[j]+"s";
+          else h=ranks[j]+ranks[i]+"o";
+          const r = compute(curQ.pos, h.toUpperCase(), curQ.stk);
+          if(r.isNum){
+            cell.textContent = (r.disp==="—")?"":r.disp;
+            cell.style.background = "#1a2335";
+            cell.style.color = "#fff";
+          }else{
+            const dd = resolveDisplay(curQ.pos, r.disp);
+            cell.textContent = h;
+            cell.style.background = dd.color || "#2a2f3c";
+            cell.style.color = "#000";
+          }
+          if(h.toUpperCase()===curQ.hand.toUpperCase()){
+            cell.classList.add("cur");
+          }
+          grid.appendChild(cell);
+        }
+      }
+      jokerContent.appendChild(grid);
+
+    }else{
+      // Flash Cards
+      const wrap=document.createElement("div");
+      const title=document.createElement("div");
+      title.className="flashTitle";
+      title.textContent="Сродни ръце със същото действие:";
+      wrap.appendChild(title);
+
+      const chips=document.createElement("div");
+      chips.className="flashWrap";
+
+      const curRes=compute(curQ.pos, curQ.hand.toUpperCase(), curQ.stk);
+      const target = curRes.disp;
+      const isNum = curRes.isNum;
+
+      const ph = parseHand(curQ.hand);
+      function isSimilar(h){
+        const p=parseHand(h); if(!p||!ph) return false;
+        if(ph.pair) return p.pair;
+        if(ph.suited) return p.suited && p.r1===ph.r1;
+        if(ph.off) return p.off && p.r1===ph.r1;
+        return (p.r1===ph.r1 && p.r2===ph.r2);
+      }
+
+      for(const h of HANDS){
+        if(!isSimilar(h)) continue;
+        const r=compute(curQ.pos, h.toUpperCase(), curQ.stk);
+        if(r.disp==="—") continue;
+        if((!isNum && r.disp===target) || (isNum && Number(r.disp)===Number(target))){
+          const dd = resolveDisplay(curQ.pos, r.disp);
+          const chip=document.createElement("div");
+          chip.className="flashChip";
+          if(isNum){
+            chip.style.background="#1a2335"; chip.style.color="#fff";
+            chip.textContent = `${h} = ${r.disp}`;
+          }else{
+            chip.style.background=dd.color||"#2a2f3c"; chip.style.color="#000";
+            chip.textContent = h;
+          }
+          chips.appendChild(chip);
+        }
+      }
+      if(!chips.childNodes.length){
+        const none=document.createElement("div");
+        none.className="mini"; none.style.opacity=".8";
+        none.textContent="Няма други сходни ръце със същото действие.";
+        wrap.appendChild(none);
+      }else{
+        wrap.appendChild(chips);
+      }
+      jokerContent.appendChild(wrap);
+    }
+  }
+
+  /* ========= Анимация чип към пот ========= */
+  function flyChip(fromEl, toEl){
+    if(!fromEl || !toEl) return;
+    const fb = fromEl.getBoundingClientRect();
+    const tb = toEl.getBoundingClientRect();
+    const chip=document.createElement("div");
+    chip.className="flyingChip";
+    chip.style.left = (fb.left + fb.width/2 - 9) + "px";
+    chip.style.top  = (fb.top + fb.height/2 - 9) + "px";
+    document.body.appendChild(chip);
+    // force layout
+    chip.getBoundingClientRect();
+    chip.style.transition = "transform .5s cubic-bezier(.3,.7,.2,1)";
+    const dx = (tb.left + tb.width/2) - (fb.left + fb.width/2);
+    const dy = (tb.top + tb.height/2) - (fb.top + fb.height/2);
+    chip.style.transform = `translate(${dx}px, ${dy}px) scale(1.15)`;
+    setTimeout(()=>{chip.remove();}, 520);
+  }
+
+  /* ========= Проверка + ефекти ========= */
+  function checkAnswer(showOnly=false, chosenAct=null){
+    if(!curQ) return;
+    const res=compute(curQ.pos,curQ.hand,curQ.stk);
+    const fb=document.getElementById("feedback");
+    const cRow=document.getElementById("correctRow"); const cVal=document.getElementById("correctVal");
+
+    if(res.disp==="—"){
+      fb.textContent="Няма данни за тази комбинация."; fb.className="feedback";
+      cRow.style.display="flex"; cVal.textContent="—"; cVal.style.background="#2a2f3c"; cVal.style.color="#fff";
+      if(lastPressedBtn){ lastPressedBtn.classList.remove("ok","err"); }
+      const d=document.getElementById("numDisp"); if(d){ d.classList.remove("ok","err"); }
+      renderJoker();
+      cVal.classList.remove("clickable");
+      cVal.onclick=null;
+      return;
+    }
+
+    const tableArea=document.getElementById("tableArea");
+    const pot = document.getElementById("pot");
+
+    if(!showOnly){
+      count++;
+      let ok=false;
+      if(res.isNum){
+        const ans=Number(numBuf), tgt=Number(res.disp);
+        ok = Number.isFinite(ans) && Math.abs(ans-tgt)<=0.1;
+        const d=document.getElementById("numDisp");
+        if(d){ d.classList.toggle("ok",ok); d.classList.toggle("err",!ok); }
+      }else{
+        ok = chosenAct!=null && chosenAct===res.disp;
+        if(lastPressedBtn){
+          lastPressedBtn.classList.toggle("ok",ok);
+          lastPressedBtn.classList.toggle("err",!ok);
+        }
+      }
+      if(ok){
+        right++; streak++;
+        fb.textContent="ВЯРНО!"; fb.className="feedback ok";
+        flyChip(document.getElementById("seatMe"), pot);
+      }else{
+        streak=0; fb.textContent="ГРЕШНО"; fb.className="feedback err";
+        tableArea.classList.add("shaking");
+        setTimeout(()=>tableArea.classList.remove("shaking"), 360);
+      }
+      document.getElementById("qCount").textContent=count;
+      document.getElementById("qRight").textContent=right;
+      document.getElementById("streak").textContent=streak;
+    }
+
+    cRow.style.display="flex";
+    const dispRight = resolveDisplay(curQ.pos, res.disp);
+    cVal.textContent = res.isNum ? res.disp : dispRight.text;
+    if(res.isNum){
+      cVal.style.background="rgba(0,0,0,.22)"; cVal.style.color="#fff";
+    }else{
+      cVal.style.background = dispRight.color || "#2a2f3c"; cVal.style.color="#000";
+    }
+
+    // Жокер след проверка
+    renderJoker();
+
+    // Клик по „Правилен:“ -> следваща ръка
+    cVal.classList.add("clickable");
+    cVal.title = "Натисни за следваща ръка";
+    cVal.onclick = ()=>{ askNew(); };
+  }
+
+  /* ========= Редактор ========= */
+  const editModal=document.getElementById("editModal");
+  const editPos=document.getElementById("editPos");
+  const editStk=document.getElementById("editStk");
+  const editArea=document.getElementById("editArea");
+  function openEditor(){
+    editPos.innerHTML = POS_LIST.map(p=>`<option value="${p}">${p}</option>`).join("");
+    editStk.innerHTML = STKS.map(s=>`<option value="${s}">${s}</option>`).join("");
+    editArea.value = get(editPos.value, editStk.value) || "";
+    document.getElementById("editMeta").textContent=`(${editPos.value} × ${editStk.value})`;
+    editModal.classList.add("show");
+  }
+  document.getElementById("btnEdit").onclick=openEditor;
+  document.getElementById("editClose").onclick=()=>editModal.classList.remove("show");
+  editPos.addEventListener("change",()=>{editArea.value=get(editPos.value,editStk.value)||""; document.getElementById("editMeta").textContent=`(${editPos.value} × ${editStk.value})`;});
+  editStk.addEventListener("change",()=>{editArea.value=get(editPos.value,editStk.value)||""; document.getElementById("editMeta").textContent=`(${editPos.value} × ${editStk.value})`;});
+  document.getElementById("editSave").onclick=()=>{ set(editPos.value, editStk.value, editArea.value); editModal.classList.remove("show"); };
+  document.getElementById("editClear").onclick=()=>{ if(confirm("Да изчистя тази клетка?")){ set(editPos.value, editStk.value, ""); editModal.classList.remove("show"); } };
+
+  /* ========= Контроли ========= */
+  document.getElementById("btnStart").onclick=()=>{count=right=streak=0;
+    document.getElementById("qCount").textContent=0; document.getElementById("qRight").textContent=0; document.getElementById("streak").textContent=0;
+    askNew();
+    // auto-hide settings
+    document.getElementById("settingsCard").classList.add("hidden");
+    document.getElementById("toggleSettings").textContent="Покажи";
+  };
+  document.getElementById("btnResetScore").onclick=()=>{count=right=streak=0;
+    document.getElementById("qCount").textContent=0; document.getElementById("qRight").textContent=0; document.getElementById("streak").textContent=0;
+    document.getElementById("jokerPanel").style.display="none";
+  };
+  document.getElementById("btnNext").onclick=()=>{ askNew(); };
+  document.getElementById("btnCheck").onclick=()=>checkAnswer(false);
+
+  // Toggle settings
+  document.getElementById("toggleSettings").onclick=()=>{
+    const card=document.getElementById("settingsCard");
+    const btn=document.getElementById("toggleSettings");
+    const hid=card.classList.toggle("hidden");
+    btn.textContent=hid?"Покажи":"Скрий";
+  };
+
+  // Режими на визуализация (принудително HU/3 или авто)
+  function setMode(m){
+    viewMode=m;
+    document.getElementById("autoMode").classList.toggle("active", m==="auto");
+    document.getElementById("forceHU").classList.toggle("active", m==="hu");
+    document.getElementById("force3").classList.toggle("active", m==="3");
+    updateTable();
+  }
+  document.getElementById("autoMode").onclick=()=>setMode("auto");
+  document.getElementById("forceHU").onclick=()=>setMode("hu");
+  document.getElementById("force3").onclick=()=>setMode("3");
+
+  /* ========= Инициализация ========= */
+  document.getElementById("jokerPanel").style.display="none";
+  document.getElementById("jokerModeName").textContent = (function(m){
+    if(m==="table")return"Жокер: Таблица 13×13";
+    return "Жокер: Flash Cards";
+  })(jokerMode);
+
+  // първи екран
+  // покажи фиктивна ръка на масата, докато не стартираме
+  curQ={pos:"HUSB", stk:"10–13", hand:"AJs"};
+  renderAnswerUI();
+  updateTable();
+
+})();
+</script>
+</body>
+</html>
