@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Range Trainer vT8 — Table Mode</title>
+<title>Range Trainer vT9 — Table Mode (iPhone Optimized)</title>
 <style>
   :root{
     /* основни */
@@ -14,19 +14,25 @@
     /* feedback */
     --ok:#1f9d55; --err:#d64545;
     /* маса */
-    --felt:#1d5a3a; --felt-dark:#14422b; --rail:#2a2f3c; --glow:#3ecf8e;
+    --felt:#1d5a3a; --felt-dark:#14422b; --rail:#2a2f3c;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.35 -apple-system,system-ui,Segoe UI,Roboto,Arial}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--text);
+    font:16px/1.35 -apple-system,system-ui,Segoe UI,Roboto,Arial;
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+    -webkit-user-select:none;user-select:none;
+  }
 
   .top{position:sticky;top:0;z-index:30;display:flex;justify-content:space-between;align-items:center;
-       padding:6px 8px;background:var(--panel2);border-bottom:1px solid var(--border)}
+       padding:8px 10px;background:var(--panel2);border-bottom:1px solid var(--border)}
   .chip{padding:3px 8px;border:1px solid var(--border);border-radius:999px;background:#0f1624;font-size:12px;display:inline-flex;gap:6px;align-items:center}
   .chip b{display:inline-block;min-width:2.2ch;text-align:center;font-variant-numeric:tabular-nums}
   .btn{border:1px solid var(--border);background:#0f1624;color:var(--text);border-radius:12px;
        padding:10px 14px;font-weight:800;cursor:pointer}
 
-  .wrap{max-width:1200px;margin:0 auto;padding:10px}
+  .wrap{max-width:1200px;margin:0 auto;padding:10px; padding-bottom:calc(10px + env(safe-area-inset-bottom))}
   .grid{display:grid;gap:10px}
   @media(min-width:1080px){.grid{grid-template-columns:1.2fr 0.8fr}}
 
@@ -43,22 +49,33 @@
   }
   .modeBadge{display:flex;gap:6px;align-items:center}
   .modeBtn{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#0f1624;font-weight:800;cursor:pointer}
-  .modeBtn.active{outline:3px solid rgba(77,163,255,.4)}
+  .modeBtn.active{outline:3px solid rgba(77,163,255,.35)}
 
+  /* ключово: височината е вързана за viewport, за да се събира на iPhone 15 PM без скрол */
   .tableArea{
-    position:relative;aspect-ratio:16/9;min-height:420px;background:linear-gradient(180deg,#0b0f14,#0d121a);
+    position:relative;
+    height: min(63vh, 560px);
+    min-height: 420px;
+    background:linear-gradient(180deg,#0b0f14,#0d121a);
+    border-bottom:1px solid var(--border);
+    will-change:transform;
   }
+  @media (max-width: 480px){
+    .tableArea{height:min(64vh, 520px); min-height:380px}
+  }
+
   .oval{
-    position:absolute;inset:8% 10%;
+    position:absolute;inset:9% 8%;
     border-radius:180px;
     background:
-      radial-gradient(ellipse at center, rgba(62,207,142,.25), transparent 55%),
+      radial-gradient(ellipse at center, rgba(62,207,142,.22), transparent 55%),
       linear-gradient(180deg,var(--felt) 0%, var(--felt-dark) 100%);
-    border:10px solid var(--rail);
+    border:9px solid var(--rail);
     box-shadow:
       inset 0 0 80px rgba(0,0,0,.35),
       0 0 0 2px rgba(0,0,0,.25),
       0 18px 60px rgba(0,0,0,.55);
+    will-change:transform;
   }
 
   .pot{
@@ -70,42 +87,59 @@
 
   /* седалки */
   .seat{
-    position:absolute;width:180px;max-width:26%;text-align:center;transform:translate(-50%,-50%);
+    position:absolute;width:180px;max-width:28%;text-align:center;transform:translate(-50%,-50%);
     display:flex;flex-direction:column;align-items:center;gap:8px
   }
-  .avatar{width:60px;height:60px;border-radius:50%;background:linear-gradient(180deg,#cfd8e3,#94a3b8);
-    box-shadow:0 8px 16px rgba(0,0,0,.35);border:3px solid #0b0f14}
+  .avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(180deg,#cfd8e3,#94a3b8);
+    box-shadow:0 8px 16px rgba(0,0,0,.35);border:3px solid #0b0f14;will-change:transform}
   .me .avatar{background:linear-gradient(180deg,#ffe08a,#ffaf40)}
   .posTag{font-size:12px;font-weight:900;padding:4px 8px;border-radius:10px;background:#0b1626;border:1px solid var(--border)}
   .name{font-weight:900;opacity:.95}
   .stack{font-size:12px;opacity:.85}
 
   /* карти */
-  .cards{display:flex;gap:8px}
+  .cards{display:flex;gap:8px;perspective:800px}
   .cardX{
-    width:52px;height:72px;border-radius:8px;background:linear-gradient(180deg,#fff,#eaeef6);
+    width:52px;height:74px;border-radius:8px;background:linear-gradient(180deg,#fff,#eaeef6);
     box-shadow:0 6px 10px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;position:relative;
     font-weight:900;font-size:20px;color:#111;
+    backface-visibility:hidden;
+    transform:translateY(6px) rotateY(0deg);opacity:1;
+    will-change:transform,opacity;
   }
   .cardX.red{color:#c53030}
   .cardX .suit{position:absolute;right:6px;bottom:4px;font-size:14px;opacity:.9}
-  .cardBack{background:repeating-linear-gradient(45deg,#1b2a44 0 6px,#152235 6px 12px);color:transparent}
+  .cardBack{
+    background:repeating-linear-gradient(45deg,#1b2a44 0 6px,#152235 6px 12px);color:transparent;
+  }
+
+  /* deal-in анимация (само твоите карти при нова ръка) */
+  .deal .cardX.meCard{
+    transform:translateY(10px) rotateY(-90deg);opacity:0;
+  }
+  .deal .cardX.meCard.show{
+    transform:translateY(0) rotateY(0deg);opacity:1;
+    transition:transform .28s cubic-bezier(.2,.8,.2,1), opacity .28s linear;
+  }
 
   /* действия панел */
   .actionsPanel{
     position:absolute;left:0;right:0;bottom:0;
     background:linear-gradient(180deg, rgba(15,22,36,.0), rgba(15,22,36,.65) 35%, rgba(15,22,36,.95));
-    padding:14px 12px;border-top:1px solid rgba(34,48,71,.5)
+    padding:12px;border-top:1px solid rgba(34,48,71,.5)
   }
   .actionsGrid{
     display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:10px
+  }
+  @media (max-width: 430px){
+    .actionsGrid{grid-template-columns:repeat(2, minmax(0,1fr))}
   }
   .actBtn{
     position:relative;border:2px solid rgba(0,0,0,.18);border-radius:13px;
     padding:14px 10px;font-size:16px;font-weight:1000;letter-spacing:.3px;
     color:#000; box-shadow:0 4px 14px rgba(0,0,0,.25);
     transform:translateY(0); transition:transform .06s ease, filter .06s ease, box-shadow .06s ease;
-    background:#bbb;
+    background:#bbb; will-change:transform,box-shadow,filter;
   }
   .actBtn:active{transform:translateY(1px); filter:brightness(.96)}
   .actBtn.ok{box-shadow:0 0 0 3px rgba(31,157,85,.55)}
@@ -128,6 +162,7 @@
 
   /* контроли под масата */
   .underbar{display:flex;gap:8px;flex-wrap:wrap;padding:10px;border-top:1px solid var(--border);background:#0f1520}
+  .underbar .btn{flex:1}
 
   /* настройки */
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
@@ -171,14 +206,14 @@
     100%{transform:translateX(0)}
   }
   .shaking .oval{animation:shake .32s ease}
-  .flyingChip{
-    position:fixed;width:18px;height:18px;border-radius:50%;
-    background:radial-gradient(circle at 30% 30%, #fff, #ffe27a 45%, #e0a100 70%, #9a6a00 100%);
-    box-shadow:0 8px 14px rgba(0,0,0,.5);z-index:50;pointer-events:none
-  }
 
-  /* помощни */
+  /* достъпност */
   .srOnly{position:absolute !important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap}
+  @media (prefers-reduced-motion: reduce){
+    .deal .cardX.meCard,
+    .deal .cardX.meCard.show{transition:none}
+    .shaking .oval{animation:none}
+  }
 </style>
 </head>
 <body>
@@ -262,10 +297,10 @@
     </div>
 
     <div class="underbar">
-      <button id="btnStart" class="btn" style="flex:1;font-weight:900">Старт / Рестарт</button>
-      <button id="btnCheck" class="btn" style="flex:1;font-weight:900">Провери</button>
-      <button id="btnNext" class="btn" style="flex:1;font-weight:900">Следващ</button>
-      <button id="btnResetScore" class="btn" style="flex:1;font-weight:900">Нулирай резултат</button>
+      <button id="btnStart" class="btn">Старт / Рестарт</button>
+      <button id="btnCheck" class="btn">Провери</button>
+      <button id="btnNext" class="btn">Следващ</button>
+      <button id="btnResetScore" class="btn">Нулирай резултат</button>
     </div>
   </div>
 
@@ -326,7 +361,7 @@
   const norm=s=>(s||"").toUpperCase().replace(/\s+/g,"");
   const isPushPos=p=>/PUSH/i.test(p);
 
-  /* Алиаси за BB срещу SB/BU в постфлоп/префлоп режими */
+  /* Алиаси за BB срещу SB/BU и HU */
   const alias=(key,act)=>{
     const up=(act||"").toUpperCase();
     if(!(key==="BBvsSB_L"||key==="HUBB_L"||key==="HUBB_MR"||key==="BBvsBU_MR"||key==="SBvsBU_MR"||key==="BBvsSB_MR"))
@@ -403,9 +438,9 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
     const r1=m[1].toUpperCase(), r2=m[2].toUpperCase(), so=(m[3]||"").toLowerCase();
     return {r1,r2, pair:r1===r2, suited:so==="s", off:so==="o"};
   }
-  function cardEl(rank, suit){
+  function cardEl(rank, suit, me=false){
     const d=document.createElement("div");
-    d.className="cardX"+(/^[♥♦]$/.test(suit)?" red":"");
+    d.className="cardX"+(/^[♥♦]$/.test(suit)?" red":"")+(me?" meCard":"");
     d.textContent=rank;
     const s=document.createElement("div"); s.className="suit"; s.textContent=suit;
     d.appendChild(s);
@@ -414,17 +449,34 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
   function renderHeroCards(hand){
     const box=document.getElementById("meCards"); box.innerHTML="";
     const p=parseHand(hand);
-    if(!p){ box.innerHTML='<div class="cardX">?</div><div class="cardX">?</div>'; return; }
-    if(p.pair){
-      box.appendChild(cardEl(p.r1,"♥"));
-      box.appendChild(cardEl(p.r2,"♠"));
-    }else if(p.suited){
-      box.appendChild(cardEl(p.r1,"♥"));
-      box.appendChild(cardEl(p.r2,"♥"));
-    }else{
-      box.appendChild(cardEl(p.r1,"♥"));
-      box.appendChild(cardEl(p.r2,"♣"));
+    if(!p){
+      box.innerHTML='<div class="cardX meCard">?</div><div class="cardX meCard">?</div>'; return;
     }
+    if(p.pair){
+      box.appendChild(cardEl(p.r1,"♥",true));
+      box.appendChild(cardEl(p.r2,"♠",true));
+    }else if(p.suited){
+      box.appendChild(cardEl(p.r1,"♥",true));
+      box.appendChild(cardEl(p.r2,"♥",true));
+    }else{
+      box.appendChild(cardEl(p.r1,"♥",true));
+      box.appendChild(cardEl(p.r2,"♣",true));
+    }
+  }
+  function animateHeroCards(){
+    const meCards=document.getElementById("meCards");
+    meCards.classList.remove("deal");
+    // force reflow to restart animation
+    void meCards.offsetHeight;
+    meCards.classList.add("deal");
+    requestAnimationFrame(()=>{
+      const cards=[...meCards.querySelectorAll(".meCard")];
+      cards.forEach((c,i)=>{
+        // stagger slight delay
+        c.classList.remove("show");
+        setTimeout(()=>{ c.classList.add("show"); }, i*60);
+      });
+    });
   }
 
   /* ========= Масата / седалки ========= */
@@ -452,14 +504,10 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
   }
   function otherPositions(hero){
     const all=["BTN","SB","BB"];
-    // treat SB/BTN as SB for 3-max set purposes
     const heroNorm = (hero==="SB/BTN")?"SB":hero;
     return all.filter(x=>x!==heroNorm);
   }
   function placeSeats(mode){
-    // positions on screen
-    const area = document.getElementById("tableArea").getBoundingClientRect();
-    // relative positions inside tableArea
     function setSeat(el, xPct, yPct){
       el.style.left = xPct + "%";
       el.style.top  = yPct + "%";
@@ -484,20 +532,18 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
     mePosTag.textContent = hero;
     meStack.textContent  = "Стак: "+curQ.stk;
     renderHeroCards(curQ.hand);
+    animateHeroCards(); // само твоите карти
 
     if(mode==="HU"){
       const opp = (hero==="SB/BTN")?"BB":"SB/BTN";
       opp1Pos.textContent = opp;
-      // facedown already in DOM
     }else{
       const others=otherPositions(hero);
       opp1Pos.textContent = others[0];
       opp2Pos.textContent = others[1];
     }
 
-    // мета (горе вдясно)
     document.getElementById("qMeta").textContent = `Ръка: ${curQ.hand} · Стак: ${curQ.stk} · Позиция: ${curQ.pos}`;
-    // скрити (за достъпност/съвместимост)
     document.getElementById("qHand").textContent=curQ.hand;
     document.getElementById("qStack").textContent="Стак: "+curQ.stk;
     document.getElementById("qPos").textContent="Позиция: "+curQ.pos;
@@ -513,7 +559,7 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
     numBuf=""; lastPressedBtn=null;
     document.getElementById("feedback").textContent="";
     document.getElementById("correctRow").style.display="none";
-    document.getElementById("jokerPanel").style.display="none"; // скрий жокера при нов въпрос
+    document.getElementById("jokerPanel").style.display="none";
     renderAnswerUI();
     updateTable();
   }
@@ -681,26 +727,13 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
     }
   }
 
-  /* ========= Анимация чип към пот ========= */
-  function flyChip(fromEl, toEl){
-    if(!fromEl || !toEl) return;
-    const fb = fromEl.getBoundingClientRect();
-    const tb = toEl.getBoundingClientRect();
-    const chip=document.createElement("div");
-    chip.className="flyingChip";
-    chip.style.left = (fb.left + fb.width/2 - 9) + "px";
-    chip.style.top  = (fb.top + fb.height/2 - 9) + "px";
-    document.body.appendChild(chip);
-    // force layout
-    chip.getBoundingClientRect();
-    chip.style.transition = "transform .5s cubic-bezier(.3,.7,.2,1)";
-    const dx = (tb.left + tb.width/2) - (fb.left + fb.width/2);
-    const dy = (tb.top + tb.height/2) - (fb.top + fb.height/2);
-    chip.style.transform = `translate(${dx}px, ${dy}px) scale(1.15)`;
-    setTimeout(()=>{chip.remove();}, 520);
+  /* ========= Проверка + ефекти ========= */
+  function vibrateShort(){
+    if(navigator && typeof navigator.vibrate==="function"){
+      try{ navigator.vibrate(150); }catch(_e){}
+    }
   }
 
-  /* ========= Проверка + ефекти ========= */
   function checkAnswer(showOnly=false, chosenAct=null){
     if(!curQ) return;
     const res=compute(curQ.pos,curQ.hand,curQ.stk);
@@ -719,7 +752,6 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
     }
 
     const tableArea=document.getElementById("tableArea");
-    const pot = document.getElementById("pot");
 
     if(!showOnly){
       count++;
@@ -739,10 +771,10 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
       if(ok){
         right++; streak++;
         fb.textContent="ВЯРНО!"; fb.className="feedback ok";
-        flyChip(document.getElementById("seatMe"), pot);
       }else{
         streak=0; fb.textContent="ГРЕШНО"; fb.className="feedback err";
         tableArea.classList.add("shaking");
+        vibrateShort();
         setTimeout(()=>tableArea.classList.remove("shaking"), 360);
       }
       document.getElementById("qCount").textContent=count;
@@ -791,9 +823,11 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
   document.getElementById("btnStart").onclick=()=>{count=right=streak=0;
     document.getElementById("qCount").textContent=0; document.getElementById("qRight").textContent=0; document.getElementById("streak").textContent=0;
     askNew();
-    // auto-hide settings
+    // авто-скриване на настройките за да се събира на екрана
     document.getElementById("settingsCard").classList.add("hidden");
     document.getElementById("toggleSettings").textContent="Покажи";
+    // скрол към масата при мобилни
+    document.querySelector('.tableCard').scrollIntoView({behavior:'smooth', block:'start'});
   };
   document.getElementById("btnResetScore").onclick=()=>{count=right=streak=0;
     document.getElementById("qCount").textContent=0; document.getElementById("qRight").textContent=0; document.getElementById("streak").textContent=0;
@@ -810,7 +844,7 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
     btn.textContent=hid?"Покажи":"Скрий";
   };
 
-  // Режими на визуализация (принудително HU/3 или авто)
+  // Режими визуализация
   function setMode(m){
     viewMode=m;
     document.getElementById("autoMode").classList.toggle("active", m==="auto");
@@ -824,13 +858,9 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
 
   /* ========= Инициализация ========= */
   document.getElementById("jokerPanel").style.display="none";
-  document.getElementById("jokerModeName").textContent = (function(m){
-    if(m==="table")return"Жокер: Таблица 13×13";
-    return "Жокер: Flash Cards";
-  })(jokerMode);
+  document.getElementById("jokerModeName").textContent = "Жокер: Таблица 13×13";
 
-  // първи екран
-  // покажи фиктивна ръка на масата, докато не стартираме
+  // първи екран: фиктивна ръка, докато не стартираме
   curQ={pos:"HUSB", stk:"10–13", hand:"AJs"};
   renderAnswerUI();
   updateTable();
