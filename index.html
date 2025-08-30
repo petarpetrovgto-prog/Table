@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Range Trainer — Compact Top</title>
+<title>Range Trainer — Compact Top (Final)</title>
 <style>
   :root{
     --bg:#0b0f14; --panel2:#101827; --border:#223047; --text:#e7ecf3;
@@ -20,7 +20,7 @@
     -webkit-user-select:none;user-select:none;
   }
 
-  /* --- Топ бар (оставен за прогрес) --- */
+  /* --- Топ бар: оставен за прогрес --- */
   .top{
     position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;
     padding:6px 8px;background:var(--panel2);border-bottom:1px solid var(--border)
@@ -33,7 +33,7 @@
   /* --- Контейнер: минимални отстояния, без излишни рамки --- */
   .wrap{max-width:900px;margin:0 auto;padding:6px 8px 8px}
 
-  /* --- Главна карта (без сенки) --- */
+  /* --- Главна карта (без тежки сенки) --- */
   .card{border:1px solid var(--border);background:#0f1624;border-radius:10px;padding:8px}
 
   /* --- Хедър: позиция/стак/ръка + карти PNG (само картинки) --- */
@@ -70,7 +70,15 @@
   /* --- Feedback близо до бутоните --- */
   .feedback{margin-top:6px;font-weight:900}
   .ok{color:var(--ok)} .err{color:var(--err)}
-  .resRow{display:flex;justify-content:space-between;gap:6px;align-items:center;padding:6px 8px;border:1px dashed #2a3b58;border-radius:8px;margin-top:6px}
+
+  /* --- „Правилен:“ ред — КЛИКВАЕМ, pointer + лек ефект --- */
+  .resRow{
+    margin-top:6px;padding:6px 8px;border:1px dashed #2a3b58;border-radius:8px;
+    display:flex;justify-content:space-between;align-items:center;gap:6px;
+    cursor:pointer; transition:background .18s, filter .12s;
+  }
+  .resRow:hover{background:#223047}
+  .resRow:active{filter:brightness(1.06)}
   .val{font-weight:900;padding:5px 8px;border-radius:8px;min-width:88px;text-align:center}
 
   /* --- ЖОКЕР: центриран --- */
@@ -79,8 +87,10 @@
   #jokerModeName{font-size:12px;opacity:.85}
   .jokerWrap{display:flex;justify-content:center}
   .jokerGrid{display:grid;grid-template-columns:repeat(13, max-content);gap:1px}
-  .jk{width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;border:1px solid #222;
-      font-size:10px;line-height:1}
+  .jk{
+    width:22px;height:22px;display:flex;align-items:center;justify-content:center;
+    font-weight:800;border:1px solid #222;font-size:10px;line-height:1
+  }
   .jk.cur{outline:2px solid #4da3ff;outline-offset:-1px}
 
   /* --- Контроли (компактни) + Настройки бутон --- */
@@ -131,7 +141,9 @@
 
     <!-- Feedback -->
     <div id="feedback" class="feedback"></div>
-    <div id="correctRow" class="resRow" style="display:none">
+
+    <!-- Правилен (кликаем) -->
+    <div id="correctRow" class="resRow" style="display:none" role="button" tabindex="0" title="Натисни за следваща ръка">
       <div>Правилен:</div><div id="correctVal" class="val">—</div>
     </div>
 
@@ -224,6 +236,9 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
   let curQ=null, count=0, right=0, streak=0;
   let numBuf=""; let lastPressedBtn=null;
   const mainCard=document.getElementById("mainCard");
+
+  /* ================= Вибрация при грешка ================= */
+  const vibrateShort=()=>{ if(navigator && typeof navigator.vibrate==="function"){ try{ navigator.vibrate(150);}catch(_e){} } };
 
   /* ================= Cards as PNG (Canvas -> Base64) ================= */
   const CARD_CACHE={};
@@ -332,7 +347,8 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
     const pos=rand(sel.pos), stk=rand(sel.stk), hand=rand(HANDS);
     curQ={pos,stk,hand}; numBuf=""; lastPressedBtn=null;
     qPosEl.textContent="Позиция: "+pos; qStackEl.textContent="Стак: "+stk; qHandEl.textContent=hand;
-    document.getElementById("feedback").textContent=""; document.getElementById("correctRow").style.display="none"; jokerPanel.style.display="none";
+    document.getElementById("feedback").textContent=""; const cRow=document.getElementById("correctRow"); cRow.style.display="none";
+    document.getElementById("jokerPanel").style.display="none";
     renderAnswerUI(); renderHeroPNG(hand); animateHeroCards();
   }
   function renderAnswerUI(){
@@ -365,8 +381,6 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
     numBuf+=k; if(d) d.textContent=numBuf;
   }
 
-  const vibrateShort=()=>{ if(navigator && typeof navigator.vibrate==="function"){ try{ navigator.vibrate(150);}catch(_e){} } };
-
   function checkAnswer(showOnly=false, chosenAct=null){
     if(!curQ) return;
     const res=compute(curQ.pos,curQ.hand,curQ.stk);
@@ -374,10 +388,11 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
 
     if(res.disp==="—"){
       fb.textContent="Няма данни за тази комбинация."; fb.className="feedback";
-      cRow.style.display="flex"; cVal.textContent="—"; cVal.style.background="#2a2f3c"; cVal.style.color="#fff";
+      cRow.style.display="flex"; cVal.textContent="—"; cVal.style.background="#2a3c55"; cVal.style.color="#fff";
       if(lastPressedBtn){ lastPressedBtn.classList.remove("ok","err"); }
       const d=document.getElementById("numDisp"); if(d){ d.classList.remove("ok","err"); }
-      renderJoker(); return;
+      renderJoker(); // покажи жокера, макар да няма данни
+      return;
     }
 
     if(!showOnly){
@@ -394,12 +409,19 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
       document.getElementById("qCount").textContent=count; document.getElementById("qRight").textContent=right; document.getElementById("streak").textContent=streak;
     }
 
+    // Покажи „Правилен:“ и направи ЦЕЛИЯ РЕД КЛИКВАЕМ (директно нова ръка)
     cRow.style.display="flex";
     const dispRight=resolveDisplay(curQ.pos,res.disp);
     cVal.textContent=res.isNum?res.disp:dispRight.text;
     if(res.isNum){ cVal.style.background="rgba(0,0,0,.22)"; cVal.style.color="#fff"; }
     else { cVal.style.background=dispRight.color||"#2a2f3c"; cVal.style.color="#000"; }
 
+    // Клик/тап върху целия ред -> нова ръка; и клавиш Enter/Space за достъпност
+    const goNext=()=>askNew();
+    cRow.onclick=goNext;
+    cRow.onkeydown=(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); goNext(); } };
+
+    // Покажи Жокера подредено и центрирано
     renderJoker();
   }
 
@@ -407,14 +429,14 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
   const editModal=document.getElementById("editModal"), editPos=document.getElementById("editPos"), editStk=document.getElementById("editStk"), editArea=document.getElementById("editArea");
   document.getElementById("btnEdit").onclick=()=>{ editPos.innerHTML=POS_LIST.map(p=>`<option value="${p}">${p}</option>`).join(""); editStk.innerHTML=STKS.map(s=>`<option value="${s}">${s}</option>`).join(""); editArea.value=get(editPos.value,editStk.value)||""; document.getElementById("editMeta").textContent=`(${editPos.value} × ${editStk.value})`; editModal.style.display="flex"; };
   document.getElementById("editClose").onclick=()=>editModal.style.display="none";
-  editPos.addEventListener("change",()=>{editArea.value=get(editPos.value,editStk.value)||""; document.getElementById("editMeta").textContent=`(${editPos.value} × ${editStk.value})`;});
+  editPos.addEventListener("change",()=>{editArea.value=get(editPos.value,editStk.value)||""; document.getElementById("editMeta").textContent=`(${editPos.value} × ${editStк.value})`;});
   editStk.addEventListener("change",()=>{editArea.value=get(editPos.value,editStk.value)||""; document.getElementById("editMeta").textContent=`(${editPos.value} × ${editStk.value})`;});
   document.getElementById("editSave").onclick=()=>{ set(editPos.value,editStk.value,editArea.value); editModal.style.display="none"; };
   document.getElementById("editClear").onclick=()=>{ if(confirm("Да изчистя тази клетка?")){ set(editPos.value,editStk.value,""); editModal.style.display="none"; } };
 
   /* ================= Controls ================= */
   document.getElementById("btnStart").onclick=()=>{count=right=streak=0; document.getElementById("qCount").textContent=0; document.getElementById("qRight").textContent=0; document.getElementById("streak").textContent=0; askNew(); };
-  document.getElementById("btnResetScore").onclick=()=>{count=right=streak=0; document.getElementById("qCount").textContent=0; document.getElementById("qRight").textContent=0; document.getElementById("streak").textContent=0; jokerPanel.style.display="none"; document.getElementById("feedback").textContent=""; document.getElementById("correctRow").style.display="none";};
+  document.getElementById("btnResetScore").onclick=()=>{count=right=streak=0; document.getElementById("qCount").textContent=0; document.getElementById("qRight").textContent=0; document.getElementById("streak").textContent=0; document.getElementById("jokerPanel").style.display="none"; document.getElementById("feedback").textContent=""; document.getElementById("correctRow").style.display="none";};
   document.getElementById("btnNext").onclick=()=>askNew();
   document.getElementById("btnCheck").onclick=()=>checkAnswer(false);
 
@@ -425,7 +447,7 @@ T9s T9o T8s T8o T7s T7o T6s T6o T5s T5o T4s T4o T3s T3o T2s T2o
 
   /* ================= Init ================= */
   function rand(arr){return arr[Math.floor(Math.random()*arr.length)];}
-  jokerPanel.style.display="none"; jokerModeName.textContent=labelForMode(jokerMode);
+  document.getElementById("jokerPanel").style.display="none"; document.getElementById("jokerModeName").textContent=labelForMode(jokerMode);
   curQ={pos:"HUSB", stk:"10–13", hand:"AJs"};
   document.getElementById("qPos").textContent="Позиция: "+curQ.pos;
   document.getElementById("qStack").textContent="Стак: "+curQ.stk;
